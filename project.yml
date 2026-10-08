@@ -1,0 +1,59 @@
+name: Prompter
+options:
+  bundleIdPrefix: com.aleksandrabramov
+  deploymentTarget:
+    macOS: "26.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    MARKETING_VERSION: "0.1"
+    CURRENT_PROJECT_VERSION: "1"
+    # Без Team ID приложение подписывается ad-hoc («Sign to Run Locally»).
+    # Укажите свой Team ID (Xcode → Settings → Accounts), чтобы macOS не сбрасывала
+    # разрешения на микрофон и запись экрана после каждой пересборки.
+    DEVELOPMENT_TEAM: ""
+    CODE_SIGN_STYLE: Automatic
+    CODE_SIGN_IDENTITY: "-"
+targets:
+  Prompter:
+    type: application
+    platform: macOS
+    sources:
+      - Prompter
+    entitlements:
+      path: Prompter/Prompter.entitlements
+      properties:
+        com.apple.security.device.audio-input: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.aleksandrabramov.Prompter
+        PRODUCT_NAME: Prompter
+        GENERATE_INFOPLIST_FILE: YES
+        ENABLE_HARDENED_RUNTIME: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Суфлёр
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.productivity
+        INFOPLIST_KEY_NSMicrophoneUsageDescription: "Суфлёр слушает вашу речь, чтобы подсказать слово, когда вы запнётесь. Звук обрабатывается на этом Mac и не сохраняется."
+        INFOPLIST_KEY_NSSpeechRecognitionUsageDescription: "Речь распознаётся на этом Mac, чтобы понять, что вы хотите сказать."
+  PrompterTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - PrompterTests
+    dependencies:
+      - target: Prompter
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: com.aleksandrabramov.PrompterTests
+schemes:
+  Prompter:
+    build:
+      targets:
+        Prompter: all
+        PrompterTests: [test]
+    test:
+      targets:
+        - PrompterTests
+    run:
+      config: Debug
