@@ -1,7 +1,7 @@
 import Foundation
 
 /// Минимальный клиент Claude Messages API поверх URLSession (официального Swift SDK нет).
-struct ClaudeClient: Sendable {
+struct ClaudeClient: ChatCompleting {
     var apiKey: String
     var model: String
 
@@ -16,7 +16,13 @@ struct ClaudeClient: Sendable {
     /// Модели, которые принимают серверный фолбэк при отказе классификаторов безопасности.
     private static let fallbackModels: Set<String> = ["claude-opus-5-5", "claude-sonnet-5-5", "claude-opus-5", "claude-fable-5-1"]
 
-    func complete(system: String, user: String, maxTokens: Int = 2048) async throws -> String {
+    var displayName: String { model }
+
+    func complete(system: String, user: String) async throws -> String {
+        try await complete(system: system, user: user, maxTokens: 2048)
+    }
+
+    func complete(system: String, user: String, maxTokens: Int) async throws -> String {
         var body: [String: Any] = [
             "model": model,
             "max_tokens": maxTokens,

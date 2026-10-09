@@ -31,7 +31,7 @@ struct OnDeviceSuggester: Suggester {
         case .unavailable(.appleIntelligenceNotEnabled):
             return "Включите Apple Intelligence в Системных настройках."
         case .unavailable(.modelNotReady):
-            return "Модель Apple Intelligence ещё загружается."
+            return "Модель Apple Intelligence не загружена. Если в System Settings нет раздела «Apple Intelligence & Siri», в вашем регионе она недоступна — используйте облачную модель."
         case .unavailable:
             return "Локальная модель недоступна."
         }
@@ -53,11 +53,18 @@ struct OnDeviceSuggester: Suggester {
     }
 }
 
-/// Claude с полным контекстом проекта (RAG): точнее, но нужен API-ключ и сеть.
-struct ClaudeSuggester: Suggester {
-    var client: ClaudeClient
+/// Облачная модель, которой отдаём системный и пользовательский промпт целиком.
+protocol ChatCompleting: Sendable {
+    var displayName: String { get }
+    func complete(system: String, user: String) async throws -> String
+}
 
-    var name: String { client.model }
+/// Облачная модель (Claude напрямую или через OpenRouter) с полным контекстом проекта (RAG):
+/// точнее локальной, но нужен ключ и сеть.
+struct CloudSuggester: Suggester {
+    var client: any ChatCompleting
+
+    var name: String { client.displayName }
 
     func suggest(_ context: PromptContext) async throws -> Suggestions {
         let raw = try await client.complete(
@@ -69,7 +76,7 @@ struct ClaudeSuggester: Suggester {
         )
         let parsed = SuggestionParser.parse(raw)
         if parsed.isEmpty {
-            throw PrompterError.message("Claude вернул ответ в неожиданном формате.")
+            throw PrompterError.message("Модель вернула ответ в неожиданном формате.")
         }
         return parsed
     }
