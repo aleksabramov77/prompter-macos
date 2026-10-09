@@ -2,8 +2,6 @@ import SwiftUI
 
 struct SettingsView: View {
     @Environment(AppModel.self) private var model
-    @State private var keyDraft = ""
-    @State private var keySaved = false
 
     var body: some View {
         @Bindable var settings = model.settings
@@ -38,29 +36,75 @@ struct SettingsView: View {
             }
 
             Section {
-                HStack {
-                    SecureField("API-ключ (sk-ant-…)", text: $keyDraft)
-                    Button("Сохранить") {
-                        settings.apiKey = keyDraft.trimmingCharacters(in: .whitespacesAndNewlines)
-                        keySaved = true
+                Picker("Провайдер", selection: $settings.cloudProvider) {
+                    ForEach(AppSettings.CloudProvider.allCases) { Text($0.title).tag($0) }
+                }
+                switch settings.cloudProvider {
+                case .openRouter:
+                    KeyField(
+                        placeholder: "Ключ OpenRouter (sk-or-…)",
+                        stored: settings.openRouterKey,
+                        save: { settings.openRouterKey = $0 }
+                    )
+                    Picker("Модель", selection: $settings.openRouterModel) {
+                        ForEach(OpenRouterClient.models, id: \.id) { Text($0.title).tag($0.id) }
+                        if !OpenRouterClient.models.contains(where: { $0.id == settings.openRouterModel }) {
+                            Text(settings.openRouterModel).tag(settings.openRouterModel)
+                        }
                     }
-                    .disabled(keyDraft == settings.apiKey)
-                }
-                if keySaved || !settings.apiKey.isEmpty {
-                    Text(settings.apiKey.isEmpty ? "Ключ удалён" : "Ключ сохранён в Связке ключей")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                Picker("Модель Claude", selection: $settings.claudeModel) {
-                    ForEach(ClaudeClient.models, id: \.id) { Text($0.title).tag($0.id) }
+                    TextField("Или ID любой модели с openrouter.ai/models", text: $settings.openRouterModel)
+                        .font(.body.monospaced())
+                case .anthropic:
+                    KeyField(
+                        placeholder: "API-ключ Anthropic (sk-ant-…)",
+                        stored: settings.apiKey,
+                        save: { settings.apiKey = $0 }
+                    )
+                    Picker("Модель Claude", selection: $settings.claudeModel) {
+                        ForEach(ClaudeClient.models, id: \.id) { Text($0.title).tag($0.id) }
+                    }
                 }
             } header: {
-                Text("Claude (PRO+)")
+                Text("Облачная модель (PRO+)")
             } footer: {
-                Text("Ключ берётся на console.anthropic.com. Claude получает описание проекта, глоссарий, найденные фрагменты документов и последние реплики разговора. При отказе модели включён серверный фолбэк (fallbacks: \"default\").")
+                Text(cloudFooter(settings.cloudProvider))
             }
         }
         .formStyle(.grouped)
-        .onAppear { keyDraft = model.settings.apiKey }
+    }
+
+    private func cloudFooter(_ provider: AppSettings.CloudProvider) -> String {
+        let shared = "В облако уходят описание проекта, релевантные термины глоссария, найденные фрагменты документов и последние реплики разговора."
+        switch provider {
+        case .openRouter:
+            return "Ключ: openrouter.ai → Keys → Create Key. Claude Haiku 5.5 стоит около $0.0005 за подсказку. " + shared
+        case .anthropic:
+            return "Ключ: console.anthropic.com → API Keys. При отказе модели включён серверный фолбэк (fallbacks: \"default\"). " + shared
+        }
+    }
+}
+
+/// Поле ключа: редактируем черновик и сохраняем в Связку ключей только по кнопке.
+private struct KeyField: View {
+    var placeholder: String
+    var stored: String
+    var save: (String) -> Void
+    @State private var draft = ""
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                SecureField(placeholder, text: $draft)
+                Button("Сохранить") {
+                    save(draft.trimmingCharacters(in: .whitespacesAndNewlines))
+                }
+                .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines) == stored)
+            }
+            Text(stored.isEmpty ? "Ключ не задан" : "Ключ сохранён в Связке ключей")
+                .font(.caption)
+                .foregroundStyle(stored.isEmpty ? Color.orange : Color.secondary)
+        }
+        .onAppear { draft = stored }
+        .onChange(of: stored) { draft = stored }
     }
 }

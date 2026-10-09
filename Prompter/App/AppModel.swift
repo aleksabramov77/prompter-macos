@@ -104,7 +104,7 @@ final class AppModel {
             }
 
             if activeSuggesters().isEmpty {
-                warnings.append("Подсказки недоступны: включите Apple Intelligence или добавьте ключ Claude в настройках.")
+                warnings.append("Подсказки недоступны: добавьте ключ OpenRouter или Claude во вкладке «Настройки».")
             }
 
             status = .running
@@ -227,7 +227,7 @@ final class AppModel {
 
         let engines = activeSuggesters()
         guard !engines.isEmpty else {
-            suggestionError = "Нет доступной модели: включите Apple Intelligence или добавьте ключ Claude в настройках."
+            suggestionError = "Нет доступной модели: добавьте ключ OpenRouter или Claude во вкладке «Настройки»."
             return
         }
 
@@ -293,15 +293,14 @@ final class AppModel {
 
     private func activeSuggesters() -> [any Suggester] {
         var result: [any Suggester] = []
-        let key = settings.apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
-        let claude = key.isEmpty ? nil : ClaudeSuggester(client: ClaudeClient(apiKey: key, model: settings.claudeModel))
+        let cloud = settings.cloudClient().map { CloudSuggester(client: $0) }
         switch settings.engine {
         case .claude:
-            if let claude { result.append(claude) }
+            if let cloud { result.append(cloud) }
         case .onDevice:
             if OnDeviceSuggester.isAvailable { result.append(OnDeviceSuggester()) }
         case .auto:
-            if let claude { result.append(claude) }
+            if let cloud { result.append(cloud) }
             if OnDeviceSuggester.isAvailable { result.append(OnDeviceSuggester()) }
         }
         return result

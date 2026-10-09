@@ -15,9 +15,24 @@ final class AppSettings {
 
         var title: String {
             switch self {
-            case .auto: "Авто: локально + Claude"
+            case .auto: "Авто: локально + облако"
             case .onDevice: "Только на устройстве"
-            case .claude: "Только Claude"
+            case .claude: "Только облако"
+            }
+        }
+    }
+
+    /// Через кого ходим в облачную модель.
+    enum CloudProvider: String, CaseIterable, Identifiable {
+        case openRouter
+        case anthropic
+
+        var id: String { rawValue }
+
+        var title: String {
+            switch self {
+            case .openRouter: "OpenRouter"
+            case .anthropic: "Anthropic (Claude напрямую)"
             }
         }
     }
@@ -41,6 +56,7 @@ final class AppSettings {
     ]
 
     private static let apiKeyAccount = "claude-api-key"
+    private static let openRouterKeyAccount = "openrouter-api-key"
     private let defaults = UserDefaults.standard
 
     var speakingLocale: String { didSet { defaults.set(speakingLocale, forKey: "speakingLocale") } }
@@ -52,11 +68,17 @@ final class AppSettings {
     var hideFromScreenSharing: Bool { didSet { defaults.set(hideFromScreenSharing, forKey: "hideFromScreenSharing") } }
     var engine: Engine { didSet { defaults.set(engine.rawValue, forKey: "engine") } }
     var claudeModel: String { didSet { defaults.set(claudeModel, forKey: "claudeModel") } }
+    var cloudProvider: CloudProvider { didSet { defaults.set(cloudProvider.rawValue, forKey: "cloudProvider") } }
+    var openRouterModel: String { didSet { defaults.set(openRouterModel, forKey: "openRouterModel") } }
     var projectBrief: String { didSet { defaults.set(projectBrief, forKey: "projectBrief") } }
     var glossaryText: String { didSet { defaults.set(glossaryText, forKey: "glossaryText") } }
 
     var apiKey: String {
         didSet { KeychainStore.write(apiKey, for: Self.apiKeyAccount) }
+    }
+
+    var openRouterKey: String {
+        didSet { KeychainStore.write(openRouterKey, for: Self.openRouterKeyAccount) }
     }
 
     init() {
@@ -70,6 +92,8 @@ final class AppSettings {
             "hideFromScreenSharing": true,
             "engine": Engine.auto.rawValue,
             "claudeModel": ClaudeClient.defaultModel,
+            "cloudProvider": CloudProvider.openRouter.rawValue,
+            "openRouterModel": OpenRouterClient.defaultModel,
             "projectBrief": "",
             "glossaryText": "",
         ])
@@ -84,7 +108,25 @@ final class AppSettings {
         claudeModel = defaults.string(forKey: "claudeModel") ?? ClaudeClient.defaultModel
         projectBrief = defaults.string(forKey: "projectBrief") ?? ""
         glossaryText = defaults.string(forKey: "glossaryText") ?? ""
+        cloudProvider = CloudProvider(rawValue: defaults.string(forKey: "cloudProvider") ?? "") ?? .openRouter
+        openRouterModel = defaults.string(forKey: "openRouterModel") ?? OpenRouterClient.defaultModel
         apiKey = KeychainStore.read(Self.apiKeyAccount) ?? ""
+        openRouterKey = KeychainStore.read(Self.openRouterKeyAccount) ?? ""
+    }
+
+    /// Облачная модель по выбранному провайдеру или nil, если для него нет ключа.
+    func cloudClient() -> (any ChatCompleting)? {
+        switch cloudProvider {
+        case .openRouter:
+            let key = openRouterKey.trimmingCharacters(in: .whitespacesAndNewlines)
+            let model = openRouterModel.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !key.isEmpty else { return nil }
+            return OpenRouterClient(apiKey: key, model: model.isEmpty ? OpenRouterClient.defaultModel : model)
+        case .anthropic:
+            let key = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !key.isEmpty else { return nil }
+            return ClaudeClient(apiKey: key, model: claudeModel)
+        }
     }
 
     /// Название языка по-английски для промпта: «English», «Russian».
