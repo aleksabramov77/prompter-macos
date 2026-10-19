@@ -59,7 +59,29 @@ open /Applications/Prompter.app
 
 Проверка: вкладка «Знания» показывает тексты. Пользователь говорит вслух термин из глоссария, и тот правильно появляется в расшифровке на вкладке «Сессия».
 
-## Правила git
-- Работай локально: коммить в текущую ветку `feature/openrouter`, ничего не пушь и не создавай PR. На GitHub отправит пользователь или другая сессия.
+## Правила git: никаких push
+- **Ничего не пушь, не создавай PR и не трогай удалённые репозитории пользователя.** Только локальные коммиты в текущую ветку `feature/openrouter`.
 - Автор коммитов — `Aleksandr Abramov <aleksabramov77@gmail.com>`. Он уже настроен для `~/Projects/My`, проверь `git config user.email`.
 - Ветку `main` не трогай.
+
+## Если ты изменил код: передай на отправку в claude2
+Список слов через `defaults write` — это не изменение кода, тогда ничего передавать не нужно. Если ты закоммитил правки в репозиторий, передай их сессии Claude на личной учётке пользователя (`claude2`): она проверит и запушит. `claude2` — это алиас (`CLAUDE_CONFIG_DIR="$HOME/.claude-second" claude`), в shell агента он не работает, поэтому команда полная. Сообщение передаётся через stdin:
+
+```bash
+cd /Users/aleksandrabramov/Projects/My/Prompter && cat <<'MSG' | CLAUDE_CONFIG_DIR="$HOME/.claude-second" claude -p --allowedTools "Bash(git:*)" "Bash(xcodegen:*)" "Bash(xcodebuild:*)"
+Ты — Claude на личной учётке (claude2). Другой агент внёс локальные правки в Суфлёр (Prompter).
+Контекст — чат, где приложение создавалось: сессия 3d3670b9-6795-41be-bb7b-60e465e23eb2,
+транскрипт: ~/.claude-second/projects/-Users-aleksandrabramov-Projects-My-Prompter--claude-worktrees-openrouter/3d3670b9-6795-41be-bb7b-60e465e23eb2.jsonl
+(при необходимости прочитай его конец). Описание проекта: docs/AGENT_HANDOFF.md, README.md, CLAUDE.md.
+
+Задача:
+1. Проект /Users/aleksandrabramov/Projects/My/Prompter, ветка feature/openrouter. Новые коммиты: git log origin/feature/openrouter..HEAD, изменения: git diff origin/feature/openrouter.
+2. Проверь сборку и тесты: xcodegen generate, затем xcodebuild test -project Prompter.xcodeproj -scheme Prompter -destination 'platform=macOS' -derivedDataPath build.
+3. Проверь по ~/.claude-second/CLAUDE.md: remote — aleksabramov77 через github-personal, автор коммитов — aleksabramov77@gmail.com.
+4. Если всё в порядке: git push origin feature/openrouter. В main не пушь и ничего не сливай.
+5. Ответь коротко: что запушено (хеши) или почему не запушено.
+
+Что изменил агент: <впиши 1–3 предложения>
+MSG
+```
+Подставь в последнюю строку сообщения, что ты изменил, и покажи пользователю ответ claude2.
