@@ -32,7 +32,8 @@ final class LiveTranscriber: @unchecked Sendable {
         return supported
     }
 
-    func start(locale: Locale, onUpdate: @escaping @Sendable (Update) -> Void) async throws {
+    /// `vocabulary` — термины, которые распознаватель должен узнавать на слух (из глоссария).
+    func start(locale: Locale, vocabulary: [String] = [], onUpdate: @escaping @Sendable (Update) -> Void) async throws {
         let transcriber = SpeechTranscriber(
             locale: locale,
             transcriptionOptions: [],
@@ -40,6 +41,11 @@ final class LiveTranscriber: @unchecked Sendable {
             attributeOptions: []
         )
         let analyzer = SpeechAnalyzer(modules: [transcriber])
+        if !vocabulary.isEmpty {
+            let context = AnalysisContext()
+            context.contextualStrings[.general] = vocabulary
+            try await analyzer.setContext(context)
+        }
         guard let format = await SpeechAnalyzer.bestAvailableAudioFormat(compatibleWith: [transcriber]) else {
             throw PrompterError.message("Не удалось подобрать аудиоформат для распознавания.")
         }

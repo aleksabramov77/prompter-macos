@@ -81,8 +81,9 @@ final class AppModel {
             suggestionError = nil
             detector = HesitationDetector(config: .init(pauseThreshold: settings.pauseThreshold))
             currentSession = SessionRecord(startedAt: .now)
+            let vocabulary = SpeechVocabulary.contextualStrings(from: Glossary.parse(settings.glossaryText))
 
-            try await myTranscriber.start(locale: locale) { [weak self] update in
+            try await myTranscriber.start(locale: locale, vocabulary: vocabulary) { [weak self] update in
                 Task { @MainActor in self?.handle(update, from: .me) }
             }
             let myTranscriber = myTranscriber
@@ -94,7 +95,7 @@ final class AppModel {
 
             if settings.listenToPartner {
                 status = .starting("Подключаю звук собеседника…")
-                await startPartnerAudio(locale: locale)
+                await startPartnerAudio(locale: locale, vocabulary: vocabulary)
             }
 
             if settings.translatePartner, settings.listenToPartner {
@@ -131,9 +132,9 @@ final class AppModel {
         status = .idle
     }
 
-    private func startPartnerAudio(locale: Locale) async {
+    private func startPartnerAudio(locale: Locale, vocabulary: [String]) async {
         do {
-            try await partnerTranscriber.start(locale: locale) { [weak self] update in
+            try await partnerTranscriber.start(locale: locale, vocabulary: vocabulary) { [weak self] update in
                 Task { @MainActor in self?.handle(update, from: .partner) }
             }
             let partnerTranscriber = partnerTranscriber
