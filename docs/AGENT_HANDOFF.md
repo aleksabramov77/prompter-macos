@@ -5,10 +5,9 @@
 ## Что это и зачем
 Наше внутреннее macOS-приложение, чтобы увереннее говорить по-английски на рабочих созвонах. Суфлёр слушает созвон. Когда пользователь запинается посреди фразы (пауза или «um», «эээ»), он показывает в плавающем окне облако подходящих слов и 2–3 готовых продолжения фразы с учётом нашего проекта. После созвона во вкладке «История» видно, где были запинки и какие слова стоит повторить.
 
-- Репозиторий: https://github.com/aleksabramov77/prompter-macos (личный аккаунт, см. правила git ниже)
-- Локальная копия: `~/Projects/My/Prompter`
-- Стек: Swift/SwiftUI, macOS 26+, проект генерируется `xcodegen`
-- **Актуальный код — в ветке `feature/openrouter`** (PR #1, может быть ещё не слит в `main`). Установленное `/Applications/Prompter.app` собрано из неё.
+- Проект: **`/Users/aleksandrabramov/Projects/My/Prompter`** — работай только локально, доступ к GitHub не нужен.
+- Папка уже переключена на ветку `feature/openrouter` с актуальным кодом. Установленное `/Applications/Prompter.app` собрано из неё.
+- Стек: Swift/SwiftUI, macOS 26+, проект генерируется `xcodegen`.
 
 ## Что уже работает
 - Два канала расшифровки в реальном времени, на устройстве (SpeechAnalyzer): «я» — микрофон, «собеседник» — системный звук Mac (ScreenCaptureKit), то есть вкладка Google Meet в браузере.
@@ -21,8 +20,8 @@
 
 ## Сборка и запуск
 ```bash
-cd ~/Projects/My/Prompter
-git fetch origin && git switch feature/openrouter && git pull
+cd /Users/aleksandrabramov/Projects/My/Prompter
+git branch --show-current               # должно быть feature/openrouter
 xcodegen generate                       # .xcodeproj генерируется, руками не правим
 xcodebuild test -project Prompter.xcodeproj -scheme Prompter -destination 'platform=macOS' -derivedDataPath build
 xcodebuild build -project Prompter.xcodeproj -scheme Prompter -destination 'platform=macOS' -derivedDataPath build
@@ -60,7 +59,7 @@ open /Applications/Prompter.app
 
 Проверка: вкладка «Знания» показывает тексты. Пользователь говорит вслух термин из глоссария, и тот правильно появляется в расшифровке на вкладке «Сессия».
 
-## Правила git (обязательно)
-- Только личный GitHub `aleksabramov77`: remote `git@github-personal:aleksabramov77/prompter-macos.git`, автор `aleksabramov77@gmail.com`. Организацию cupid-media не трогать.
-- `gh` вызывать только как `GH_CONFIG_DIR="$HOME/.config/gh-personal" gh …`.
-- Изменения кода — в новой ветке от `feature/openrouter`, затем PR. В `main` не пушить и самому не сливать.
+## Правила git
+- Работай локально: коммить в текущую ветку `feature/openrouter`, ничего не пушь и не создавай PR. На GitHub отправит пользователь или другая сессия.
+- Автор коммитов — `Aleksandr Abramov <aleksabramov77@gmail.com>`. Он уже настроен для `~/Projects/My`, проверь `git config user.email`.
+- Ветку `main` не трогай.
